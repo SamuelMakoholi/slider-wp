@@ -1,0 +1,97 @@
+// Register the new widget
+function news_updates_register_widget() {
+    register_widget( 'News_Updates_Widget' );
+}
+add_action( 'widgets_init', 'news_updates_register_widget' );
+
+// Define the widget class
+class News_Updates_Widget extends WP_Widget {
+    function __construct() {
+        parent::__construct(
+            // Widget ID
+            'news_updates_widget',
+            // Widget name
+            __('News and Updates', 'news_updates_widget_domain'),
+            // Widget description
+            array( 'description' => __( 'Displays posts in a masonry style', 'news_updates_widget_domain' ), )
+        );
+    }
+
+    // Output the widget content
+    public function widget( $args, $instance ) {
+        $title = ! empty( $instance['title'] ) ? $instance['title'] : '';
+
+        echo $args['before_widget'];
+        if ( ! empty( $title ) ) {
+            echo $args['before_title'] . apply_filters( 'widget_title', $title ) . $args['after_title'];
+        }
+
+        // Query to fetch posts
+        $query_args = array(
+            'post_type' => 'post',
+            'posts_per_page' => 5, // Change the number of posts to display
+        );
+        $query = new WP_Query( $query_args );
+
+        if ( $query->have_posts() ) {
+            echo '<div class="masonry-container">';
+            $counter = 0;
+            echo '<div class="masonry-column latest-post">';
+            if ( $query->have_posts() ) {
+                $query->the_post();
+                ?>
+                <div class="masonry-item">
+                    <h3 class="post-title"><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h3>
+                    <div class="post-thumbnail"><?php the_post_thumbnail(); ?></div>
+                    <div class="post-meta">
+                        <span class="post-date"><?php echo get_the_date(); ?></span> | 
+                        <span class="post-category"><?php the_category(', '); ?></span>
+                    </div>
+                </div>
+                <?php
+                $counter++;
+            }
+            echo '</div>';
+            echo '<div class="masonry-column other-posts">';
+            while ( $query->have_posts() && $counter < 6 ) {
+                $query->the_post();
+                ?>
+                <div class="masonry-item">
+                    <h3 class="post-title"><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h3>
+                    <div class="post-thumbnail"><?php the_post_thumbnail(); ?></div>
+                    <div class="post-meta">
+                        <span class="post-date"><?php echo get_the_date(); ?></span> | 
+                        <span class="post-category"><?php the_category(', '); ?></span>
+                    </div>
+                </div>
+                <?php
+                $counter++;
+            }
+            echo '</div>';
+            echo '</div>';
+            wp_reset_postdata();
+        } else {
+            echo '<p>No posts found.</p>';
+        }
+
+        echo $args['after_widget'];
+    }
+
+    // Widget form in the admin area
+    public function form( $instance ) {
+        $title = isset( $instance['title'] ) ? $instance['title'] : __( 'News and Updates', 'news_updates_widget_domain' );
+        ?>
+        <p>
+            <label for="<?php echo $this->get_field_id( 'title' ); ?>"><?php _e( 'Title:' ); ?></label>
+            <input class="widefat" id="<?php echo $this->get_field_id( 'title' ); ?>" name="<?php echo $this->get_field_name( 'title' ); ?>" type="text" value="<?php echo esc_attr( $title ); ?>" />
+        </p>
+        <?php
+    }
+
+    // Update widget settings
+    public function update( $new_instance, $old_instance ) {
+        $instance = array();
+        $instance['title'] = ( ! empty( $new_instance['title'] ) ) ? strip_tags( $new_instance['title'] ) : '';
+        return $instance;
+    }
+}
